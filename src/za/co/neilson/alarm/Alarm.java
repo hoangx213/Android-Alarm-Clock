@@ -32,7 +32,7 @@ public class Alarm implements Serializable {
 		EASY,
 		MEDIUM,
 		HARD;
-		
+
 		@Override
 		public String toString() {
 			switch(this.ordinal()){
@@ -46,7 +46,7 @@ public class Alarm implements Serializable {
 			return super.toString();
 		}
 	}
-	
+
 	public enum Day{
 		SUNDAY,
 		MONDAY,
@@ -76,18 +76,19 @@ public class Alarm implements Serializable {
 			}
 			return super.toString();
 		}
-		
+
 	}
 	private static final long serialVersionUID = 8699489847426803789L;
 	private int id;
 	private Boolean alarmActive = true;
 	private Calendar alarmTime = Calendar.getInstance();
-	private Day[] days = {Day.MONDAY,Day.TUESDAY,Day.WEDNESDAY,Day.THURSDAY,Day.FRIDAY,Day.SATURDAY,Day.SUNDAY};	
+	private Day[] days = {Day.MONDAY,Day.TUESDAY,Day.WEDNESDAY,Day.THURSDAY,Day.FRIDAY,Day.SATURDAY,Day.SUNDAY};
 	private String alarmTonePath = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM).toString();
 	private Boolean vibrate = true;
 	private String alarmName = "Alarm Clock";
 	private Difficulty difficulty = Difficulty.EASY;
-	
+	private String[] alarmDetails = new String[8];
+
 	public Alarm() {
 
 	}
@@ -129,7 +130,7 @@ public class Alarm implements Serializable {
 		if (alarmTime.before(Calendar.getInstance()))
 			alarmTime.add(Calendar.DAY_OF_MONTH, 1);
 		while(!Arrays.asList(getDays()).contains(Day.values()[alarmTime.get(Calendar.DAY_OF_WEEK)-1])){
-			alarmTime.add(Calendar.DAY_OF_MONTH, 1);			
+			alarmTime.add(Calendar.DAY_OF_MONTH, 1);
 		}
 		return alarmTime;
 	}
@@ -173,7 +174,7 @@ public class Alarm implements Serializable {
 				Integer.parseInt(timePieces[0]));
 		newAlarmTime.set(Calendar.MINUTE, Integer.parseInt(timePieces[1]));
 		newAlarmTime.set(Calendar.SECOND, 0);
-		setAlarmTime(newAlarmTime);		
+		setAlarmTime(newAlarmTime);
 	}
 
 	/**
@@ -183,9 +184,8 @@ public class Alarm implements Serializable {
 		return days;
 	}
 
-	/**
-	 * @param set
-	 *            the repeatDays to set
+	/*
+	 *  set the repeatDays to set
 	 */
 	public void setDays(Day[] days) {
 		this.days = days;
@@ -204,16 +204,16 @@ public class Alarm implements Serializable {
 			setDays(result.toArray(new Day[result.size()]));
 		}
 	}
-	
+
 	public void removeDay(Day day) {
-	    
+
 		List<Day> result = new LinkedList<Day>();
 	    for(Day d : getDays())
 	        if(!d.equals(day))
 	            result.add(d);
 	    setDays(result.toArray(new Day[result.size()]));
 	}
-	
+
 	/**
 	 * @return the alarmTonePath
 	 */
@@ -227,7 +227,7 @@ public class Alarm implements Serializable {
 	public void setAlarmTonePath(String alarmTonePath) {
 		this.alarmTonePath = alarmTonePath;
 	}
-	
+
 	/**
 	 * @return the vibrate
 	 */
@@ -251,11 +251,25 @@ public class Alarm implements Serializable {
 	}
 
 	/**
+	 * @return the alarmDetails
+	 */
+	public String[] getAlarmDetails() {
+		return alarmDetails;
+	}
+
+	/**
 	 * @param alarmName
 	 *            the alarmName to set
 	 */
 	public void setAlarmName(String alarmName) {
 		this.alarmName = alarmName;
+	}
+	/**
+	 * @param alarmDetails
+	 *            the alarmName to set
+	 */
+	public void setAlarmDetails(String[] alarmDetails) {
+		this.alarmDetails = alarmDetails;
 	}
 
 	public Difficulty getDifficulty() {
@@ -277,12 +291,12 @@ public class Alarm implements Serializable {
 	public String getRepeatDaysString() {
 		StringBuilder daysStringBuilder = new StringBuilder();
 		if(getDays().length == Day.values().length){
-			daysStringBuilder.append("Every Day");		
+			daysStringBuilder.append("Every Day");
 		}else{
 			Arrays.sort(getDays(), new Comparator<Day>() {
 				@Override
 				public int compare(Day lhs, Day rhs) {
-					
+
 					return lhs.ordinal() - rhs.ordinal();
 				}
 			});
@@ -293,20 +307,20 @@ public class Alarm implements Serializable {
 //					daysStringBuilder.append(d.toString().substring(0, 4));
 //					break;
 					default:
-						daysStringBuilder.append(d.toString().substring(0, 3));		
+						daysStringBuilder.append(d.toString().substring(0, 3));
 						break;
-				}				
+				}
 				daysStringBuilder.append(',');
 			}
 			daysStringBuilder.setLength(daysStringBuilder.length()-1);
 		}
-			
+
 		return daysStringBuilder.toString();
 	}
 
 	public void schedule(Context context) {
 		setAlarmActive(true);
-		
+
 		Intent myIntent = new Intent(context, AlarmAlertBroadcastReciever.class);
 		myIntent.putExtra("alarm", this);
 
@@ -314,9 +328,9 @@ public class Alarm implements Serializable {
 
 		AlarmManager alarmManager = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
 
-		alarmManager.set(AlarmManager.RTC_WAKEUP, getAlarmTime().getTimeInMillis(), pendingIntent);					
+		alarmManager.set(AlarmManager.RTC_WAKEUP, getAlarmTime().getTimeInMillis(), pendingIntent);
 	}
-	
+
 	public String getTimeUntilNextAlarmMessage(){
 		long timeDifference = getAlarmTime().getTimeInMillis() - System.currentTimeMillis();
 		long days = timeDifference / (1000 * 60 * 60 * 24);

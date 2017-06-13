@@ -48,6 +48,9 @@ public class AlarmActivity extends BaseActivity {
 		mathAlarmListView = (ListView) findViewById(android.R.id.list);
 		mathAlarmListView.setLongClickable(true);
 		mathAlarmListView.setOnItemLongClickListener(new OnItemLongClickListener() {
+			/**
+			 * Click lâu để xóa một Alarm
+			 */
 			@Override
 			public boolean onItemLongClick(AdapterView<?> adapterView, View view, int position, long id) {
 				view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
@@ -61,7 +64,7 @@ public class AlarmActivity extends BaseActivity {
 
 						Database.init(AlarmActivity.this);
 						Database.deleteEntry(alarm);
-						AlarmActivity.this.callMathAlarmScheduleService();
+						callMathAlarmScheduleService();
 						
 						updateAlarmList();
 					}
@@ -84,7 +87,9 @@ public class AlarmActivity extends BaseActivity {
 		alarmListAdapter = new AlarmListAdapter(this);
 		this.mathAlarmListView.setAdapter(alarmListAdapter);
 		mathAlarmListView.setOnItemClickListener(new OnItemClickListener() {
-
+			/**
+			 * Mở trang Alarm details
+			 */
 			@Override
 			public void onItemClick(AdapterView<?> arg0, View v, int position, long id) {
 				v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
@@ -143,7 +148,7 @@ public class AlarmActivity extends BaseActivity {
 			Alarm alarm = (Alarm) alarmListAdapter.getItem((Integer) checkBox.getTag());
 			alarm.setAlarmActive(checkBox.isChecked());
 			Database.update(alarm);
-			AlarmActivity.this.callMathAlarmScheduleService();
+			callMathAlarmScheduleService();
 			if (checkBox.isChecked()) {
 				Toast.makeText(AlarmActivity.this, alarm.getTimeUntilNextAlarmMessage(), Toast.LENGTH_LONG).show();
 			}

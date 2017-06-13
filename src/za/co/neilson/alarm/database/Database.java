@@ -51,7 +51,8 @@ public class Database extends SQLiteOpenHelper {
 	public static final String COLUMN_ALARM_TONE = "alarm_tone";
 	public static final String COLUMN_ALARM_VIBRATE = "alarm_vibrate";
 	public static final String COLUMN_ALARM_NAME = "alarm_name";	
-	
+	public static final String COLUMN_ALARM_DETAILS = "alarm_details";
+
 	public static void init(Context context) {
 		if (null == instance) {
 			instance = new Database(context);
@@ -80,8 +81,7 @@ public class Database extends SQLiteOpenHelper {
 		
 		try {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		    ObjectOutputStream oos = null;
-		    oos = new ObjectOutputStream(bos);
+		    ObjectOutputStream oos = new ObjectOutputStream(bos);
 		    oos.writeObject(alarm.getDays());
 		    byte[] buff = bos.toByteArray();
 		    
@@ -94,7 +94,18 @@ public class Database extends SQLiteOpenHelper {
 		cv.put(COLUMN_ALARM_TONE, alarm.getAlarmTonePath());
 		cv.put(COLUMN_ALARM_VIBRATE, alarm.getVibrate());
 		cv.put(COLUMN_ALARM_NAME, alarm.getAlarmName());
-		
+
+		try {
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			ObjectOutputStream oos = new ObjectOutputStream(bos);
+			oos.writeObject(alarm.getAlarmDetails());
+			byte[] buff = bos.toByteArray();
+
+			cv.put(COLUMN_ALARM_DETAILS, buff);
+
+		} catch (Exception e){
+		}
+
 		return getDatabase().insert(ALARM_TABLE, null, cv);
 	}
 	public static int update(Alarm alarm) {
@@ -118,7 +129,19 @@ public class Database extends SQLiteOpenHelper {
 		cv.put(COLUMN_ALARM_TONE, alarm.getAlarmTonePath());
 		cv.put(COLUMN_ALARM_VIBRATE, alarm.getVibrate());
 		cv.put(COLUMN_ALARM_NAME, alarm.getAlarmName());
-					
+
+		try {
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			ObjectOutputStream oos = null;
+			oos = new ObjectOutputStream(bos);
+			oos.writeObject(alarm.getAlarmDetails());
+			byte[] buff = bos.toByteArray();
+
+			cv.put(COLUMN_ALARM_DETAILS, buff);
+
+		} catch (Exception e){
+		}
+
 		return getDatabase().update(ALARM_TABLE, cv, "_id=" + alarm.getId(), null);
 	}
 	public static int deleteEntry(Alarm alarm){
@@ -143,7 +166,8 @@ public class Database extends SQLiteOpenHelper {
 				COLUMN_ALARM_DIFFICULTY,
 				COLUMN_ALARM_TONE,
 				COLUMN_ALARM_VIBRATE,
-				COLUMN_ALARM_NAME
+				COLUMN_ALARM_NAME,
+				COLUMN_ALARM_DETAILS
 				};
 		Cursor c = getDatabase().query(ALARM_TABLE, columns, COLUMN_ALARM_ID+"="+id, null, null, null,
 				null);
@@ -152,10 +176,10 @@ public class Database extends SQLiteOpenHelper {
 		if(c.moveToFirst()){
 			
 			alarm =  new Alarm();
-			alarm.setId(c.getInt(1));
-			alarm.setAlarmActive(c.getInt(2)==1);
-			alarm.setAlarmTime(c.getString(3));
-			byte[] repeatDaysBytes = c.getBlob(4);
+			alarm.setId(c.getInt(0));
+			alarm.setAlarmActive(c.getInt(1)==1);
+			alarm.setAlarmTime(c.getString(2));
+			byte[] repeatDaysBytes = c.getBlob(3);
 			
 			ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(repeatDaysBytes);
 			try {
@@ -174,10 +198,30 @@ public class Database extends SQLiteOpenHelper {
 				e.printStackTrace();
 			}
 						
-			alarm.setDifficulty(Difficulty.values()[c.getInt(5)]);
-			alarm.setAlarmTonePath(c.getString(6));
-			alarm.setVibrate(c.getInt(7)==1);
-			alarm.setAlarmName(c.getString(8));
+			alarm.setDifficulty(Difficulty.values()[c.getInt(4)]);
+			alarm.setAlarmTonePath(c.getString(5));
+			alarm.setVibrate(c.getInt(6)==1);
+			alarm.setAlarmName(c.getString(7));
+
+			byte[] alarmDetailsBytes = c.getBlob(8);
+
+			byteArrayInputStream = new ByteArrayInputStream(alarmDetailsBytes);
+
+			try {
+				ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
+				String[] alarmDetails;
+				Object object = objectInputStream.readObject();
+				if(object instanceof String[]){
+					alarmDetails = (String[]) object;
+					alarm.setAlarmDetails(alarmDetails);
+				}
+			} catch (StreamCorruptedException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
 		}
 		c.close();
 		return alarm;
@@ -193,7 +237,8 @@ public class Database extends SQLiteOpenHelper {
 				COLUMN_ALARM_DIFFICULTY,
 				COLUMN_ALARM_TONE,
 				COLUMN_ALARM_VIBRATE,
-				COLUMN_ALARM_NAME
+				COLUMN_ALARM_NAME,
+				COLUMN_ALARM_DETAILS
 				};
 		return getDatabase().query(ALARM_TABLE, columns, null, null, null, null,
 				null);
@@ -205,8 +250,7 @@ public class Database extends SQLiteOpenHelper {
 
 	@Override
 	public void onCreate(SQLiteDatabase db) {
-		// TODO Auto-generated method stub
-		db.execSQL("CREATE TABLE IF NOT EXISTS " + ALARM_TABLE + " ( " 
+		db.execSQL("CREATE TABLE IF NOT EXISTS " + ALARM_TABLE + " ( "
 				+ COLUMN_ALARM_ID + " INTEGER primary key autoincrement, " 
 				+ COLUMN_ALARM_ACTIVE + " INTEGER NOT NULL, " 
 				+ COLUMN_ALARM_TIME + " TEXT NOT NULL, " 
@@ -214,7 +258,8 @@ public class Database extends SQLiteOpenHelper {
 				+ COLUMN_ALARM_DIFFICULTY + " INTEGER NOT NULL, "
 				+ COLUMN_ALARM_TONE + " TEXT NOT NULL, " 
 				+ COLUMN_ALARM_VIBRATE + " INTEGER NOT NULL, " 
-				+ COLUMN_ALARM_NAME + " TEXT NOT NULL)");
+				+ COLUMN_ALARM_NAME + " TEXT NOT NULL, "
+				+ COLUMN_ALARM_DETAILS + " BLOB NOT NULL)");
 	}
 
 	@Override
@@ -267,10 +312,31 @@ public class Database extends SQLiteOpenHelper {
 				alarm.setAlarmTonePath(cursor.getString(5));
 				alarm.setVibrate(cursor.getInt(6) == 1);
 				alarm.setAlarmName(cursor.getString(7));
-				
+
+				byte[] alarmDetailsBytes = cursor.getBlob(8);
+
+				byteArrayInputStream = new ByteArrayInputStream(
+						alarmDetailsBytes);
+				try {
+					ObjectInputStream objectInputStream = new ObjectInputStream(
+							byteArrayInputStream);
+					String[] alarmDetails;
+					Object object = objectInputStream.readObject();
+					if (object instanceof Alarm.Day[]) {
+						alarmDetails = (String[]) object;
+						alarm.setAlarmDetails(alarmDetails);
+					}
+				} catch (StreamCorruptedException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				} catch (ClassNotFoundException e) {
+					e.printStackTrace();
+				}
+
 				alarms.add(alarm);
 
-			} while (cursor.moveToNext());			
+			} while (cursor.moveToNext());
 		}
 		cursor.close();
 		return alarms;
